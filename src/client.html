@@ -1,0 +1,108 @@
+<!DOCTYPE html>
+
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Demo chat page</title>
+</head>
+
+<body style="overflow: hidden;"> 
+    <div class="wrapper">
+        <div id="info-dashboard">
+            <input id="userName" placeholder="Your Name" /> <button id="start-button" type="button">Start Chat</button>
+        </div>
+        <div id="message-dashboard" style="display: none;">
+            <h3 id="user"></h3>
+            <div class="messages-area">
+                <ul id="message-history" style="list-style: none; max-height: 75vh; overflow-y:scroll; padding: 20px;"></ul>
+            </div>
+            <div class="send-area" style="position: fixed;bottom: 0">
+                <!-- <form> -->
+                <input id="user-message" placeholder="Type here" style="width: 60vw;
+    border-radius: 10px;
+    padding: 5px;
+    outline: 10px solid lightgray;
+    border: none;
+    margin: 20px;" />
+                <button id="submit-button" type="button" style="background-color: blue;
+    color: white;
+    padding: 10px 20px;
+    border: none;
+    border-radius: 5px;">send</button>
+                <!-- </form> -->
+            </div>
+        </div>
+    </div>
+</body>
+<style>
+    li#self-message {
+        text-align: right;
+        color: white;
+        box-shadow: 2px 2px 10px gray;
+        background-color: lightgreen;
+        border-radius: 5px;
+        padding: 0.3rem 0.3rem 1rem 0.3rem;
+        margin: 0.5rem 0 0.5rem 4rem;
+    }
+
+    li#other-message {
+        text-align: left;
+        color: white;
+        box-shadow: 2px 2px 10px gray;
+        background-color: lightsalmon;
+        border-radius: 5px;
+        padding: 0.3rem 0.3rem 1rem 0.3rem;
+        margin: 0.5rem 4rem 0.5rem 0;
+    }
+</style>
+<script>
+    document.getElementById('start-button').addEventListener('click', (e) => {
+        const userName = document.getElementById('userName').value;
+        if (!userName) {
+            return;
+        }
+        const userProEl = document.getElementById('user');
+        userProEl.innerText = `Hello ${userName}, Welcome to group chat`;
+        document.getElementById('message-dashboard').style['display'] = 'block';
+        document.getElementById('info-dashboard').style['display'] = 'none';
+        const socket = new WebSocket(`wss://ebkeppxllb.execute-api.ap-south-1.amazonaws.com/production/?userName=${userName}`);
+        socket.addEventListener('open', (ev) => {
+            console.log('Connection established');
+        })
+        socket.addEventListener('close', (ev) => {
+            console.log('❌ Connection closed');
+        })
+        socket.addEventListener('message', (ev) => {
+            const timeString = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
+            const data = JSON.parse(ev.data)
+            console.log('message received');
+            const historyArea = document.getElementById('message-history');
+            const li = document.createElement('li');
+            li.setAttribute('id', 'other-message');
+            li.innerHTML = `<span style="color:red"><b>${data.userName}</b></span><br> ${data?.response?.message} <br><span style="float:right;font-size:0.8rem">${timeString}</span>`;
+            historyArea.appendChild(li);
+            historyArea.scrollTo(0,historyArea.scrollHeight);
+        })
+        const submitButton = document.getElementById('submit-button');
+        submitButton.addEventListener('click', () => {
+            const timeString = new Date().toLocaleString('en-US', { hour: 'numeric', minute: 'numeric', hour12: true });
+            const userMsg = document.getElementById('user-message');
+            const msg = userMsg.value
+            if (!msg) {
+                return;
+            }
+            socket.send(JSON.stringify({ action: "sendmessage", message: msg }));
+            userMsg.value = '';
+
+            const historyArea = document.getElementById('message-history');
+            const li = document.createElement('li');
+            li.setAttribute('id', 'self-message');
+            li.innerHTML = `${msg} <br><span style="float:right;font-size:0.8rem">${timeString}</span>`;
+            historyArea.appendChild(li);
+            historyArea.scrollTo(0,historyArea.scrollHeight);
+        })
+    })
+
+
+</script>
+
+</html>
